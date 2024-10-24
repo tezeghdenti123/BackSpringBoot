@@ -2,8 +2,7 @@ package com.bezkoder.springjwt.controllers;
 
 import com.bezkoder.springjwt.DTO.ClientDTO;
 import com.bezkoder.springjwt.Services.ClientService;
-import com.bezkoder.springjwt.models.Client;
-import com.bezkoder.springjwt.payload.response.MessageResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +21,11 @@ public class ClientController {
     @GetMapping("/clients")
     public List<ClientDTO> getClients(){
         return clientService.getClients();
+    }
+
+    @GetMapping("/clients/count")
+    public int getNbClients(){
+        return clientService.getNbClients();
     }
 
     @PostMapping("/client")

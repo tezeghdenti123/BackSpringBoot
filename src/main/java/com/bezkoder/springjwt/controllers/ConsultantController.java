@@ -55,13 +55,26 @@ public class ConsultantController {
     @GetMapping("/commerciale/consultants")
     @PreAuthorize("hasRole('ADMIN') or hasRole('COMMERCIALE')")
     public List<ConsultantPublicDTO> getConsultantByComId(@RequestParam Long commercialeId){
-        return consultantService.getConsultantDTOByConsId(commercialeId);
+        return consultantService.getConsultantDTOByComId(commercialeId);
     }
 
-
+    @GetMapping("/commerciale/consultants/available/count")
+    @PreAuthorize("hasRole('COMMERCIALE')")
+    public int getNbAvailableConsultantByComId(@RequestParam Long commercialeId){
+        return consultantService.getNbAvailableConsultantByComId(commercialeId);
+    }
+    @GetMapping("/consultants/available/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public int getNbAvailableConsultant(){
+        return consultantService.getNbAvailableConsultants();
+    }
     @PutMapping("/consultant")
     public ConsultantPublicDTO updateConsultant(@RequestBody ConsultantPublicDTO consultantPublicDTO){
         return consultantService.updateConsultant(consultantPublicDTO);
+    }
+    @GetMapping("/consultants/chiffreaffaire")
+    public Double getChiffreAffaire(){
+        return  consultantService.getChiffreAffaire();
     }
 
 

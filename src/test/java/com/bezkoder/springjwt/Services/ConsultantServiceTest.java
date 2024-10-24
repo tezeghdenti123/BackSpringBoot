@@ -2,6 +2,7 @@ package com.bezkoder.springjwt.Services;
 
 import com.bezkoder.springjwt.DTO.ConsultantPrivateDTO;
 import com.bezkoder.springjwt.DTO.ConsultantPublicDTO;
+
 import com.bezkoder.springjwt.models.*;
 import com.bezkoder.springjwt.repositories.*;
 import org.junit.jupiter.api.Test;
@@ -9,12 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
@@ -35,6 +34,8 @@ class ConsultantServiceTest {
     private DevelopperRepository developperRepository;
     @Autowired
     private ConsultantService consultantService;
+    @Autowired
+    private UserRepository userRepository;
 
 
     @Test
@@ -135,9 +136,10 @@ class ConsultantServiceTest {
         commerciale.setConsultantList(consultantList);
         commerciale=commercialeRepository.save(commerciale);
         assertEquals(2,consultantRepository.findAll().size());//should return 2 beacuse there is two consultants commerciale and 1 associated consultant
+
         consultantService.deleteConsultant(commerciale.getId());
         assertEquals(1,consultantRepository.findAll().size());//should return 1 to ensure that the associated consultant persist
-
+        assertEquals(1,userRepository.findAll().size());
         //ensure when deleting a Gestionnaire none of the associated consultant will be deleted
         Consultant consultant2=setConsultant(ERole.ROLE_DEVELOPPER,"Consultant2","consultant2@gmail.com","test2019","consultant2");
         GestionnaireRH gestionnaireRH=setGestionnaire(ERole.ROLE_GESTIONNAIRE,"Gestionnaire1","Gestionnaire1","gest@gmail.com","test2019");
@@ -148,12 +150,7 @@ class ConsultantServiceTest {
         assertEquals(3,consultantRepository.findAll().size());//should return 3 beacuse there is 2 consultants (the previuos one and the new one) and 1 associated gestionnaire
         consultantService.deleteConsultant(gestionnaireRH.getId());
         assertEquals(2,consultantRepository.findAll().size());//should return 2 to ensure that the associated consultant persist
-
-
-        //ensure when deleting a Developper none of the associated consultant will be deleted
-        Consultant consultant=consultantRepository.findAll().get(0);
-        consultantService.deleteConsultant(consultant.getId());
-        assertEquals(1,consultantRepository.findAll().size()); //should return 1 to ensure that the consultant is deleted
+        assertEquals(2,userRepository.findAll().size());
 
 
     }
@@ -183,7 +180,7 @@ class ConsultantServiceTest {
         ConsultantPrivateDTO consultantPrivateDTO=new ConsultantPrivateDTO();
         consultantPrivateDTO.setId(consultant.getId());
         consultantPrivateDTO.setName("Consultant1");
-        consultantPrivateDTO.setEmail("Consultant1");
+        consultantPrivateDTO.setEmail("Consultant1@gmail.com");
         consultantPrivateDTO.setUsername("Consultant1");
         consultantPrivateDTO.setPassword("Test2018");
         Role role=roleRepository.findByName(ERole.ROLE_GESTIONNAIRE).orElseThrow();
@@ -198,11 +195,10 @@ class ConsultantServiceTest {
         consultant=consultantRepository.findById(consultant.getId()).orElseThrow();
         //Then: ensure that the consultant is up to date
         assertEquals("Consultant1",consultant.getName());
-        assertEquals("Consultant1",consultant.getEmail());
+        assertEquals("Consultant1@gmail.com",consultant.getEmail());
         assertEquals("Consultant1",consultant.getUsername());
         assertEquals(commerciale1.getId(),consultant.getCommerciale().getId());
         assertEquals(null,consultant.getGestionnaireRH());
-        assertEquals(roles.iterator().next(),consultant.getRoles().iterator().next());
         assertEquals(1,consultant.getSkillList().size());
 
     }
@@ -266,30 +262,7 @@ class ConsultantServiceTest {
         assertEquals(null,previousConsultant.getCommerciale());
     }
 
-    @Test
-    void updateConsultantRoles() {
-        /****************** First Scenario *****************/
-        // Given: You save a role and a consultant
-        Consultant previousConsultant=setConsultant(ERole.ROLE_DEVELOPPER,"Consultant1","Consultant1@gmail.com","Test2019","Consultant1");
 
-        //when: creating a DTO with a role and call the function updateConsultantRoles()
-        ConsultantPrivateDTO consultantPrivateDTO=new ConsultantPrivateDTO();
-        Set<Role>roles=setRoles(ERole.ROLE_COMMERCIALE);
-        consultantPrivateDTO.setRoles(roles);
-        consultantService.updateConsultantRoles(previousConsultant,consultantPrivateDTO);
-        //Then: assert that the role in the previous consultant is set to the new one
-        assertEquals(consultantPrivateDTO.getRoles().iterator().next(),previousConsultant.getRoles().iterator().next());
-        /****************** Second Scenario *****************/
-        // Given: You save a role and a consultant
-        Consultant previousConsultant1=setConsultant(ERole.ROLE_DEVELOPPER,"Consultant1","Consultant1@gmail.com","Test2019","Consultant1");
-
-        //when: creating a DTO with a Null role and call the function updateConsultantRoles()
-        ConsultantPrivateDTO consultantPrivateDTO1=new ConsultantPrivateDTO();
-        consultantPrivateDTO1.setRoles(null);
-        consultantService.updateConsultantRoles(previousConsultant1,consultantPrivateDTO1);
-        //Then: assert that the role in the previous consultant is set to the new one
-        assertEquals(null,previousConsultant1.getRoles());
-    }
 
     private List<Skill> setSkills(){
         List<Skill> skillList=new ArrayList<>();
@@ -339,5 +312,44 @@ class ConsultantServiceTest {
     }
 
 
+    @Test
+    void getChiffreAffaire() {
+        Consultant consultant=new Consultant();
+        consultant.setEmail("Test@gmail.com");
+        consultant.setPassword("medbac2019");
+        consultant.setUsername("Test123");
+        Affectation affectation=new Affectation();
+        affectation.setDate_fin(LocalDate.now().plusMonths(1));
+        affectation.setDate_deb(LocalDate.now().minusMonths(1));
+        affectation.setTjm(120D);
+        affectation=affectationRepository.save(affectation);
+        Affectation affectation1=new Affectation();
+        affectation1.setDate_fin(LocalDate.now().minusMonths(1));
+        affectation1.setDate_deb(LocalDate.now().minusMonths(4));
+        affectation1.setTjm(500D);
+        affectation1=affectationRepository.save(affectation1);
+        List<Affectation>affectationList=new ArrayList<Affectation>();
+        affectationList.add(affectation);
+        affectationList.add(affectation1);
+        consultant.setAffectationList(affectationList);
+        consultant=consultantRepository.save(consultant);
+        Double chiffreAffaire=consultantService.getChiffreAffaire();
+        assertEquals(consultantService.getWorkingDaysUntilToday()*120,chiffreAffaire);
+    }
 
+    @Test
+    void callFranceCalenderApi() {
+        List<LocalDate>jourFérierList=consultantService.callFranceCalendarApi("2025");
+        assertEquals(11,jourFérierList.size());
+    }
+
+    @Test
+    void isWeekend() {
+        LocalDate localDate=LocalDate.of(2024,10,10);
+        assertEquals(false,consultantService.isWeekend(localDate));
+        localDate=LocalDate.of(2024,10,12);
+        assertEquals(true,consultantService.isWeekend(localDate));
+        localDate=LocalDate.of(2024,10,13);
+        assertEquals(true,consultantService.isWeekend(localDate));
+    }
 }

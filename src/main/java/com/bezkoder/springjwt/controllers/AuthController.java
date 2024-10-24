@@ -66,9 +66,11 @@ public class AuthController {
     List<String> roles = userDetails.getAuthorities().stream()
         .map(item -> item.getAuthority())
         .collect(Collectors.toList());
-
+    User user=userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+    System.out.println( "test"+user.getName());
     return ResponseEntity.ok(new JwtResponse(jwt, 
-                         userDetails.getId(), 
+                         userDetails.getId(),
+                          user.getName(),
                          userDetails.getUsername(), 
                          userDetails.getEmail(), 
                          roles));
@@ -122,17 +124,21 @@ public class AuthController {
               .body(new MessageResponse("Error: Email is already in use!"));
     }
 
-    // Create new user's account
-    User user = new User(commerciale.getUsername(),
-            commerciale.getEmail(),
-            encoder.encode(commerciale.getPassword()));
-    user.setName(commerciale.getName());
-    user.setPhone(commerciale.getPhone());
 
     Set<Role> roles = new HashSet<>();
     Role adminRole = roleRepository.findByName(ERole.ROLE_COMMERCIALE)
             .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
     roles.add(adminRole);
+    if(commerciale.getGestionnaireRH()!=null){
+      if(commerciale.getGestionnaireRH().getId()==null){
+        commerciale.setGestionnaireRH(null);
+      }
+    }
+    if(commerciale.getCommerciale()!=null){
+      if(commerciale.getCommerciale().getId()==null){
+        commerciale.setCommerciale(null);
+      }
+    }
 
     //user.setRoles(roles);
     commerciale.setRoles(roles);
@@ -155,12 +161,7 @@ public class AuthController {
               .body(new MessageResponse("Error: Email is already in use!"));
     }
 
-    // Create new user's account
-    User user = new User(developper.getUsername(),
-            developper.getEmail(),
-            encoder.encode(developper.getPassword()));
-    user.setName(developper.getName());
-    user.setPhone(developper.getPhone());
+
 
     Set<Role> roles = new HashSet<>();
     Role adminRole = roleRepository.findByName(ERole.ROLE_DEVELOPPER)
@@ -170,6 +171,17 @@ public class AuthController {
     //user.setRoles(roles);
     developper.setRoles(roles);
     developper.setPassword(encoder.encode(developper.getPassword()));
+    if(developper.getGestionnaireRH()!=null){
+      if(developper.getGestionnaireRH().getId()==null){
+        developper.setGestionnaireRH(null);
+      }
+    }
+    if(developper.getCommerciale()!=null){
+      if(developper.getCommerciale().getId()==null){
+        developper.setCommerciale(null);
+      }
+    }
+
     //userRepository.save(user);
     developperRepository.save(developper);
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
@@ -188,16 +200,21 @@ public class AuthController {
               .body(new MessageResponse("Error: Email is already in use!"));
     }
 
-    User user = new User(gestionnaireRH.getUsername(),
-            gestionnaireRH.getEmail(),
-            encoder.encode(gestionnaireRH.getPassword()));
-    user.setName(gestionnaireRH.getName());
-    user.setPhone(gestionnaireRH.getPhone());
 
     Set<Role> roles = new HashSet<>();
     Role adminRole = roleRepository.findByName(ERole.ROLE_GESTIONNAIRE)
             .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
     roles.add(adminRole);
+    if(gestionnaireRH.getGestionnaireRH()!=null){
+      if(gestionnaireRH.getGestionnaireRH().getId()==null){
+        gestionnaireRH.setGestionnaireRH(null);
+      }
+    }
+    if(gestionnaireRH.getCommerciale()!=null){
+      if(gestionnaireRH.getCommerciale().getId()==null){
+        gestionnaireRH.setCommerciale(null);
+      }
+    }
 
     gestionnaireRH.setRoles(roles);
     gestionnaireRH.setPassword(encoder.encode(gestionnaireRH.getPassword()));

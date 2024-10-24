@@ -46,7 +46,6 @@ public class ConsultantPublicDTO {
     }
 
 
-
     public String getName() {
         return name;
     }

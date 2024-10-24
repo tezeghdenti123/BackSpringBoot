@@ -53,6 +53,9 @@ public class OffreService {
 
     public ResponseEntity<?> saveOffre(OffreDTO offreDTO) {
         Offre offre=OffreMapper.INSTANCE.toEntity(offreDTO);
+        if(offre.getGestionnaireRH().getId()==null){
+            offre.setGestionnaireRH(null);
+        }
         offreRepository.save(offre);
         return ResponseEntity.ok(new MessageResponse("Offre created successfully!"));
     }
@@ -60,7 +63,7 @@ public class OffreService {
     public List<OffreDTO> getOffres() {
         List<Offre>offreList=offreRepository.findAll();
         List<OffreDTO>offreDTOList=new ArrayList<OffreDTO>();
-        for(int i=0;i<offreDTOList.size();i++){
+        for(int i=0;i<offreList.size();i++){
             OffreDTO offreDTO=OffreMapper.INSTANCE.toDTO(offreList.get(i));
             offreDTOList.add(offreDTO);
         }
@@ -80,7 +83,17 @@ public class OffreService {
     public ResponseEntity<?> updateOffre(OffreDTO offreDTO) {
         Offre offre=OffreMapper.INSTANCE.toEntity(offreDTO);
         if(offreRepository.existsById(offre.getId())){
-            offreRepository.save(offre);
+            Offre savedOffre=offreRepository.findById(offre.getId()).orElseThrow();
+            savedOffre.setDateDebut(offre.getDateDebut());
+            savedOffre.setDescription(offre.getDescription());
+            savedOffre.setExperience(offre.getExperience());
+            savedOffre.setLocation(offre.getLocation());
+            savedOffre.setPosition(offre.getPosition());
+            savedOffre.setStatus(offre.getStatus());
+            savedOffre.setTitle(offre.getTitle());
+            savedOffre.setTjm(offre.getTjm());
+            savedOffre.setType(offre.getType());
+            offreRepository.save(savedOffre);
             return ResponseEntity.status(HttpStatus.OK).body("updated!");
         }
         else{

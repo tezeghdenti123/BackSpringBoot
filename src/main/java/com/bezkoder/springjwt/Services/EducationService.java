@@ -26,4 +26,21 @@ public class EducationService {
         }
         return ResponseEntity.ok("Education deleted succecfully!");
     }
+
+    public ResponseEntity<?> updateFormations(FormationsDTO formationsDTO) {
+        Formations formations=FormationsMapper.INSTANCE.toEntity(formationsDTO);
+        if((formations.getId()!=null)&&(formationsRepository.existsById(formationsDTO.getId()))){
+            Formations savedFormations=formationsRepository.findById(formations.getId()).orElseThrow();
+            savedFormations.setAnnee(formations.getAnnee());
+            savedFormations.setDomain_formation(formations.getDomain_formation());
+            savedFormations.setDegree(formations.getDegree());
+            savedFormations.setEtablissement(formations.getEtablissement());
+            savedFormations.setVille(formations.getVille());
+            formationsRepository.save(savedFormations);
+            return ResponseEntity.ok("Formation updated successfully!");
+        }
+        else{
+            return ResponseEntity.ok("Id not found!");
+        }
+    }
 }

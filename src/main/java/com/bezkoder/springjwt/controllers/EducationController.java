@@ -21,6 +21,10 @@ public class EducationController {
         educationService.saveFormations(formationsDTO);
         return ResponseEntity.ok(new MessageResponse("Education added successfully!"));
     }
+    @PutMapping("/education")
+    public ResponseEntity<?> updateFormation(@RequestBody FormationsDTO formationsDTO){
+        return educationService.updateFormations(formationsDTO);
+    }
     @DeleteMapping("/education/{id}")
     public ResponseEntity<?> deleteFormation(@PathVariable("id")Long formationId){
         return educationService.deleteFormation(formationId);

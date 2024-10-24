@@ -32,4 +32,9 @@ public class ExperienceController {
     public ResponseEntity<?>deleteExperience(@PathVariable("id")Long experienceId){
         return experienceService.deleteExperience(experienceId);
     }
+
+    @PutMapping("/experience")
+    public ResponseEntity<?> updateExperience(@RequestBody ProjetDTO projetDTO){
+        return experienceService.updateExperienceDTO(projetDTO);
+    }
 }

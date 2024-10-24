@@ -3,10 +3,8 @@ package com.bezkoder.springjwt.Services;
 import com.bezkoder.springjwt.DTO.ExperienceDTO;
 import com.bezkoder.springjwt.DTO.ProjetDTO;
 import com.bezkoder.springjwt.mappers.ProjetMapper;
-import com.bezkoder.springjwt.models.Affectation;
-import com.bezkoder.springjwt.models.Client;
-import com.bezkoder.springjwt.models.Consultant;
-import com.bezkoder.springjwt.models.Projet;
+import com.bezkoder.springjwt.models.*;
+import com.bezkoder.springjwt.repositories.AffectationRepository;
 import com.bezkoder.springjwt.repositories.ClientRepository;
 import com.bezkoder.springjwt.repositories.ConsultantRepository;
 import com.bezkoder.springjwt.repositories.ProjetRepository;
@@ -22,6 +20,8 @@ import java.util.List;
 public class ExperienceService {
     @Autowired
     private ConsultantRepository consultantRepository;
+    @Autowired
+    private AffectationRepository affectationRepository;
     @Autowired
     private ProjetRepository projetRepository;
     @Autowired
@@ -49,8 +49,8 @@ public class ExperienceService {
         experienceDTO.setAffectationId(affectation.getId());
         experienceDTO.setTjm(affectation.getTjm());
         experienceDTO.setTitre(projet.getTitre());
-        experienceDTO.setDate_debut(projet.getDate_debut());
-        experienceDTO.setDate_fin(projet.getDate_fin());
+        experienceDTO.setDate_debut(affectation.getDate_deb());
+        experienceDTO.setDate_fin(affectation.getDate_fin());
         experienceDTO.setClientName(client.getName());
         experienceDTO.setClientId(client.getId());
         experienceDTO.setProjectId(projet.getId());
@@ -76,6 +76,47 @@ public class ExperienceService {
         }
         else{
             return ResponseEntity.ok("this Id: "+experienceId+" doesn't exist!");
+        }
+    }
+
+    public ResponseEntity<?> updateExperienceDTO(ProjetDTO projetDTO) {
+        Projet projet=ProjetMapper.INSTANCE.toEntity(projetDTO);
+        if((projet.getId()!=null)&&(projetRepository.existsById(projetDTO.getId()))){
+            Projet savedProjet=projetRepository.findById(projetDTO.getId()).orElseThrow();
+            savedProjet=projetRepository.findById(projetDTO.getId()).orElseThrow();
+            savedProjet.setDate_fin(projet.getDate_fin());
+            savedProjet.setDate_debut(projet.getDate_debut());
+            savedProjet.setClient(projet.getClient());
+            savedProjet.setTitre(projet.getTitre());
+            Affectation affectation=projet.getAffectationList().get(0);
+            updateAffectation(affectation);
+            projetRepository.save(savedProjet);
+            return ResponseEntity.ok("Updated successfully!");
+        }else{
+            return ResponseEntity.ok("Id not found!");
+        }
+    }
+
+    void updateAffectation(Affectation affectation){
+        if((affectation.getId()!=null)&&(affectationRepository.existsById(affectation.getId()))){
+            Affectation savedAffectation=affectationRepository.findById(affectation.getId()).orElseThrow();
+            if(affectation.getTjm()!=null){
+                savedAffectation.setTjm(affectation.getTjm());
+            }
+            if(affectation.getDate_deb()!=null){
+                savedAffectation.setDate_deb(affectation.getDate_deb());
+            }
+            if(affectation.getDate_fin()!=null){
+                savedAffectation.setDate_fin(affectation.getDate_fin());
+            }
+            if(affectation.getProjet()!=null){
+                savedAffectation.setProjet(affectation.getProjet());
+            }
+            if(affectation.getConsultant()!=null){
+                savedAffectation.setConsultant(affectation.getConsultant());
+            }
+
+            affectationRepository.save(savedAffectation);
         }
     }
 }

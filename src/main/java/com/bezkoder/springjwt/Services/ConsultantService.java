@@ -5,18 +5,20 @@ import com.bezkoder.springjwt.DTO.ConsultantPublicDTO;
 import com.bezkoder.springjwt.mappers.ConsultantMapper;
 import com.bezkoder.springjwt.mappers.ConsultantPrivateMapper;
 import com.bezkoder.springjwt.models.*;
-import com.bezkoder.springjwt.repositories.CommercialeRepository;
-import com.bezkoder.springjwt.repositories.ConsultantRepository;
-import com.bezkoder.springjwt.repositories.GesionnaireRHRepository;
-import com.bezkoder.springjwt.repositories.RoleRepository;
+import com.bezkoder.springjwt.repositories.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import reactor.core.publisher.Mono;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -32,6 +34,14 @@ public class ConsultantService {
     PasswordEncoder encoder;
     @Autowired
     RoleRepository roleRepository;
+    @Autowired
+    private WebClient.Builder webClientBuilder;
+    @Autowired
+    private DevelopperRepository developperRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+
 
 
 
@@ -70,7 +80,7 @@ public class ConsultantService {
         return consultantPublicDTOList;
     }
 
-    public List<ConsultantPublicDTO> getConsultantDTOByConsId(Long commercialeId){
+    public List<ConsultantPublicDTO> getConsultantDTOByComId(Long commercialeId){
         Commerciale commerciale=commercialeRepository.findById(commercialeId).orElseThrow(() -> new RuntimeException("Commerciale not found"));
         List<Consultant>consultantList= commerciale.getConsultantList();
         List<ConsultantPublicDTO> consultantPublicDTOList =new ArrayList<ConsultantPublicDTO>();
@@ -135,7 +145,6 @@ public class ConsultantService {
         return ConsultantMapper.INSTANCE.toDTO(consultant);
     }
 
-
     //Test implemented
     public ResponseEntity<?> updateFullConsultant(ConsultantPrivateDTO consultantPrivateDTO) {
         Consultant consultant= ConsultantPrivateMapper.INSTANCE.toEntity(consultantPrivateDTO);
@@ -146,7 +155,6 @@ public class ConsultantService {
             existedConsultant.setEmail(consultant.getEmail());
             existedConsultant.setPhone(consultant.getPhone());
             existedConsultant.setTitle(consultant.getTitle());
-            existedConsultant=updateConsultantRoles(existedConsultant,consultantPrivateDTO);
             existedConsultant=updateConsultantCommerciale(existedConsultant,consultantPrivateDTO);
             existedConsultant=updateConsultantGestionnaire(existedConsultant,consultantPrivateDTO);
             existedConsultant.setPassword(encoder.encode(consultant.getPassword()));
@@ -182,20 +190,45 @@ public class ConsultantService {
         return savedConsultant;
     }
     //Test implemented
-    Consultant updateConsultantRoles(Consultant savedConsultant,ConsultantPrivateDTO consultantPrivateDTO){
-        if(consultantPrivateDTO.getRoles()!=null){
-            Iterator<Role> iterator = consultantPrivateDTO.getRoles().iterator();
-            Role role=iterator.next();
-            Role role1=roleRepository.findByName(role.getName()).orElseThrow();
-            Set<Role> newRoles=new HashSet<>();
-            newRoles.add(role1);
-            savedConsultant.setRoles(newRoles);
-            return savedConsultant;
-        }
-        else{
-            savedConsultant.setRoles(null);
-            return savedConsultant;
-        }
+
+    Developper toDevelopper(Consultant consultant){
+        Developper developper=new Developper();
+        developper.setPassword(consultant.getPassword());
+        developper.setName(consultant.getName());
+        developper.setUsername(consultant.getUsername());
+        developper.setEmail(consultant.getEmail());
+        developper.setTitle(consultant.getTitle());
+        developper.setLinkedIn(consultant.getLinkedIn());
+        developper.setPhone(consultant.getPhone());
+        developper.setRoles(consultant.getRoles());
+        return developper;
+    }
+
+    Commerciale toCommerciale(Consultant consultant){
+        Commerciale commerciale=new Commerciale();
+        commerciale.setPassword(consultant.getPassword());
+        commerciale.setName(consultant.getName());
+        commerciale.setUsername(consultant.getUsername());
+        commerciale.setEmail(consultant.getEmail());
+        commerciale.setTitle(consultant.getTitle());
+        commerciale.setLinkedIn(consultant.getLinkedIn());
+        commerciale.setPhone(consultant.getPhone());
+        commerciale.setRoles(consultant.getRoles());
+        return commerciale;
+
+    }
+
+    GestionnaireRH toGestionnaire(Consultant consultant){
+        GestionnaireRH gestionnaireRH=new GestionnaireRH();
+        gestionnaireRH.setPassword(consultant.getPassword());
+        gestionnaireRH.setName(consultant.getName());
+        gestionnaireRH.setUsername(consultant.getUsername());
+        gestionnaireRH.setEmail(consultant.getEmail());
+        gestionnaireRH.setTitle(consultant.getTitle());
+        gestionnaireRH.setLinkedIn(consultant.getLinkedIn());
+        gestionnaireRH.setPhone(consultant.getPhone());
+        gestionnaireRH.setRoles(consultant.getRoles());
+        return gestionnaireRH;
     }
 
     //Test implemented
@@ -203,24 +236,18 @@ public class ConsultantService {
     public ResponseEntity<?> deleteConsultant(Long consId) {
         if(consultantRepository.existsById(consId)){
             Consultant consultant=consultantRepository.findById(consId).orElseThrow();
-            System.out.println("ok");
-            System.out.println(consultant.getRoles().iterator().next().getName());
-            System.out.println("ok");
+
             String role= String.valueOf(consultant.getRoles().iterator().next().getName());
             if(role.equals("ROLE_DEVELOPPER")){
-                System.out.println("Dev");
-                consultantRepository.deleteById(consId);
+                developperRepository.deleteById(consId);
             }
             else if (role.equals("ROLE_GESTIONNAIRE")) {
                 System.out.println(consId);
-                System.out.println("Gest");
                 GestionnaireRH gestionnaireRH=gesionnaireRHRepository.findById(consId).orElseThrow();
-                System.out.println("ok");
                 gestionnaireRH.getConsultantList().forEach(consultant1 -> {consultant1.setGestionnaireRH(null);});
                 gesionnaireRHRepository.deleteById(consId);
             }
             else {
-                System.out.println("Com");
                 Commerciale commerciale=commercialeRepository.findById(consId).orElseThrow();
                 commerciale.getConsultantList().forEach(consultant1 -> {consultant1.setCommerciale(null);});
                 commercialeRepository.deleteById(consId);
@@ -230,4 +257,88 @@ public class ConsultantService {
 
         return ResponseEntity.status(HttpStatus.OK).body("Deleted!");
     }
+
+    public int getNbAvailableConsultantByComId(Long commercialeId) {
+        int nbAvailableConsultant=0;
+        List<ConsultantPublicDTO>consultantPublicDTOList= getConsultantDTOByComId(commercialeId);
+        for(int i=0;i<consultantPublicDTOList.size();i++){
+            if (consultantPublicDTOList.get(i).getAvailable()){
+                nbAvailableConsultant+=1;
+            }
+        }
+        return nbAvailableConsultant;
+    }
+
+    public Double getChiffreAffaire() {
+        Double chiffreAffaire=0D;
+        List<Consultant> consultantList=consultantRepository.findAll();
+        for(int i=0;i<consultantList.size();i++){
+            List<Affectation>affectationList=consultantList.get(i).getAffectationList();
+            for(int j=0;j<affectationList.size();j++){
+                Affectation affectation=affectationList.get(j);
+                if(isCurrent(affectation.getDate_deb(),affectation.getDate_fin())){
+                    chiffreAffaire+=affectation.getTjm()*getWorkingDaysUntilToday();
+                }
+            }
+        }
+        return chiffreAffaire;
+    }
+
+
+    public int getWorkingDaysUntilToday() {
+
+        List<LocalDate>jourFerieList=callFranceCalendarApi(String.valueOf(LocalDate.now().getYear()));
+        LocalDate today = LocalDate.now();
+        LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+        int workingDaysCount = 0;
+        // Loop through each day of the current month until today
+        for (LocalDate date = firstDayOfMonth; !date.isAfter(today); date = date.plusDays(1)) {
+            // Check if the day is not a weekend and not a holiday
+            if (!isWeekend(date) && !jourFerieList.contains(date)) {
+                workingDaysCount++;
+            }
+        }
+        return workingDaysCount;
+    }
+    //Test implementd
+    public boolean isWeekend(LocalDate date) {
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
+    }
+    //Test implemented
+    public List<LocalDate> callFranceCalendarApi(String year) {
+        List<LocalDate>jourFerieList=new ArrayList<>();
+        WebClient webClient = webClientBuilder.build();
+        webClient.get()
+                .uri("https://calendrier.api.gouv.fr/jours-feries/metropole/" + year + ".json")
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {})
+                .doOnError(WebClientRequestException.class, e -> {
+                    System.err.println("Error fetching holiday data: " + e.getMessage());
+                    // You can add more error handling logic here, like logging or retries
+                }).flatMap(holidayData -> {
+                    holidayData.forEach((date, title) -> {
+                        LocalDate localDate = LocalDate.parse(date);
+                        jourFerieList.add(localDate);
+                    });
+
+                    return Mono.empty(); // You can return a different Mono if needed
+                }).block();
+        return jourFerieList;
+    }
+
+    public int getNbAvailableConsultants() {
+        int nbAvailableConsultant=0;
+        List<Consultant>consultantList=consultantRepository.findAll();
+        for(int i=0;i<consultantList.size();i++ ){
+            Consultant consultant=consultantList.get(i);
+            List<Affectation>affectationList=consultant.getAffectationList();
+            Boolean available=isAvailable(affectationList);
+            if(available){
+                nbAvailableConsultant+=1;
+            }
+        }
+        return nbAvailableConsultant;
+    }
 }
+
